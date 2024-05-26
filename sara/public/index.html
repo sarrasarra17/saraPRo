@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Handyman Booking</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+	<h1>Handyman Booking</h1>
+	<form id="bookingForm" onsubmit="return bookHandyman(event)">
+		<label for="name">Name:</label>
+		<input type="text" id="name" name="name" required><br><br>
+
+		<label for="email">Email:</label>
+		<input type="email" id="email" name="email" required><br><br>
+
+		<label for="service">Service:</label>
+		<select id="service" name="service" required>
+			<option value="plumbing">Plumbing</option>
+			<option value="electrician">Electrician</option>
+			<option value="carpenter">Carpenter</option>
+		</select><br><br>
+
+		<label for="date">Date:</label>
+		<input type="date" id="date" name="date" required><br><br>
+
+		<label for="time">Time:</label>
+		<input type="time" id="time" name="time" required><br><br>
+
+		<button type="submit">Book Handyman</button>
+	</form>
+
+	<h2>Booking List</h2>
+	<ul id="bookingList"></ul>
+
+	<!-- Include web3.js library -->
+	<script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+	<!-- Add custom JavaScript code -->
+	<script>
+		let web3;
+		let HandymanContract;
+
+		document.addEventListener('DOMContentLoaded', async () => {
+			if (typeof window.ethereum !== 'undefined') {
+				web3 = new Web3(window.ethereum);
+				try {
+					await window.ethereum.request({ method: 'eth_requestAccounts' });
+					const accounts = await web3.eth.getAccounts();
+
+					// Initialize the contract
+					HandymanContract = new web3.eth.Contract(contractABI, contractAddress);
+					console.log('Contract initialized:', HandymanContract);
+					displayBookings();
+				} catch (error) {
+					console.error('User denied account access', error);
+				}
+			} else {
+				alert('Non-Ethereum browser detected. You should consider trying MetaMask!');
+			}
+		});
+
+		async function bookHandyman(event) {
+			event.preventDefault();
+			const name = document.getElementById('name').value;
+			const email = document.getElementById('email').value;
+			const service = document.getElementById('service').value;
+			const date = document.getElementById('date').value;
+			const time = document.getElementById('time').value;
+
+			if (typeof window.ethereum !== 'undefined') {
+				try {
+					const accounts = await web3.eth.getAccounts();
+					const receipt = await HandymanContract.methods.bookService(name, email, service, date, time)
+						.send({ from: accounts[0], gas: 3000000 });
+					console.log('Transaction receipt:', receipt);
+					alert('Booking successful!');
+					displayBookings();
+				} catch (error) {
+					console.error('Error booking handyman:', error);
+					alert('Booking failed. Please try again.');
+				}
+			} else {
+				alert('Non-Ethereum browser detected. You should consider trying MetaMask!');
+			}
+		}
+
+		async function displayBookings() {
+			try {
+				// Initialize an empty array to hold the bookings
+				let bookings = [];
+
+				// Call the getBookings() function to fetch bookings
+				bookings = await HandymanContract.methods.getBookings().call();
+
+				const bookingList = document.getElementById('bookingList');
+				bookingList.innerHTML = '';
+
+				// Iterate over each booking retrieved
+				bookings.forEach(booking => {
+					// Create a list item element for each booking
+					const listItem = document.createElement('li');
+					// Set the text content of the list item to display booking details
+					listItem.textContent = `Name: ${booking.name}, Email: ${booking.email}, Service: ${booking.service}, Date: ${booking.date}, Time: ${booking.time}`;
+					// Append the list item to the booking list
+					bookingList.appendChild(listItem);
+				});
+			} catch (error) {
+				// Log any errors that occur during fetching bookings
+				console.error('Error fetching bookings:', error);
+			}
+		}
+
+
+
+		// Contract ABI and Address
+		const contractABI = [
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_email",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_service",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_date",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_time",
+						"type": "string"
+					}
+				],
+				"name": "bookService",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "bookings",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "email",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "service",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "date",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "time",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getBookings",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "name",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "email",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "service",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "date",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "time",
+								"type": "string"
+							}
+						],
+						"internalType": "struct HandymanContract.Booking[]",
+						"name": "",
+						"type": "tuple[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		];
+		const contractAddress = '0x1Bf2d3D26a7d717975Af38464a070BD3927cEefE'; // Replace with your deployed contract address
+	</script>
+</body>
+
+</html>
